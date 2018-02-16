@@ -74,7 +74,7 @@ class HDFCube(orb.core.HDFCube):
         :param kwargs: Kwargs are :meth:`orb.core.HDFCube` properties.
         """
         self.debug = bool(debug)
-        self.logger = orb.core.Logger(debug=self.debug)
+        logger = orb.core.Logger(debug=self.debug)
         FIT_TOL = 1e-10
         self.cube_path = cube_path
         instrument = None
@@ -1383,14 +1383,15 @@ class HDFCube(orb.core.HDFCube):
           into one mask, else a list of region masks is returned (default
           True)
         """
-        if isinstance(region, str):
+        try:
             return orb.utils.misc.get_mask_from_ds9_region_file(
                 region,
                 [0, self.dimx],
                 [0, self.dimy],
                 header=self.header,
                 integrate=integrate)
-        else: return region
+        except TypeError:
+            return region
 
     def correct_wavelength(self, sky_map_path):
         """Correct the wavelength of the cube based on the velocity of
@@ -1538,6 +1539,7 @@ class HDFCube(orb.core.HDFCube):
                     detect_divergence=False,
                     quiet=True)).T
         else:
+            logging.debug('Using dxdymaps')
             radecarr = np.atleast_2d([ra, dec]).T
             coords = orb.utils.astrometry.world2pix(
                 self.get_wcs_header(), self.dimx, self.dimy, radecarr, self.dxmap, self.dymap)
