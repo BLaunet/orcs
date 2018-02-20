@@ -224,7 +224,7 @@ class SpectralCube(HDFCube):
                 orb.utils.validate.is_iterable(sky_lines, object_name='sky_lines')
 
             logging.info('{} sky lines to fit'.format(len(sky_lines)))
-            
+
             self._prepare_input_params(sky_lines, fmodel='sinc',
                                        pos_def=['1'] * len(sky_lines),
                                        pos_cov=[mean_sky_vel],
@@ -268,7 +268,7 @@ class SpectralCube(HDFCube):
         logging.debug('x: {}'.format(x))
         logging.debug('y: {}'.format(y))
         logging.debug('v: {}'.format(sky_vel_map))
-        
+
         nans = np.isnan(sky_vel_map)
         sky_vel_map[nans] = 0.
         sky_vel_map_err = np.array(sky_vel_map_err)
@@ -530,7 +530,7 @@ class SpectralCube(HDFCube):
                         argdet_frame, overwrite=True)
 
 
-    def register(self, distortion_map_path=None):
+    def register(self, frame = None, star_catalog_deg = None, star_detection_pix=None, distortion_map_path=None):
         """Make a new registration of the cube.
 
         :param distortion_map: A path to a FITS image containing an
@@ -538,11 +538,11 @@ class SpectralCube(HDFCube):
           calibration field containing a lot of stars and taken during
           the same run as the science cube.
         """
-
-        deep_frame = self.get_deep_frame()
-        if deep_frame is None:
-            raise Exception('No deep frame is attached to the cube. Please run the last step of the reduction process again.')
-
+        if frame is None:
+            deep_frame = self.get_deep_frame()
+            if deep_frame is None:
+                raise Exception('No deep frame is attached to the cube. Please run the last step of the reduction process again.')
+            frame = deep_frame
         sip = None
         compute_distortion = True
         if distortion_map_path is not None:
@@ -553,18 +553,21 @@ class SpectralCube(HDFCube):
             compute_distortion = False
 
         astro = Astrometry(
-            deep_frame,
+            frame,
             target_radec=(self.params.target_ra,
                           self.params.target_dec),
             target_xy=(self.params.target_x,
                        self.params.target_y),
             wcs_rotation=self.params.wcs_rotation,
             sip=sip,
-            instrument=self.instrument)
+            instrument=self.instrument,
+            profile_name='moffat')
 
         wcs, dxmap, dymap = astro.register(
             compute_distortion = compute_distortion,
-            return_error_maps=True)
+            return_error_maps=True,
+            star_catalog_deg = star_catalog_deg,
+            star_detection_pix = star_detection_pix)
 
         newhdr = wcs.to_header(relax=True)
         newhdr['CD1_1'] = wcs.wcs.cd[0,0]
@@ -572,7 +575,7 @@ class SpectralCube(HDFCube):
         newhdr['CD2_1'] = wcs.wcs.cd[1,0]
         newhdr['CD2_2'] = wcs.wcs.cd[1,1]
 
-        self.write_fits(self._get_deep_frame_wcs_path(), deep_frame,
+        self.write_fits(self._get_deep_frame_wcs_path(), frame,
                         fits_header=newhdr, overwrite=True)
         self.write_fits(self._get_dxmap_path(), dxmap,
                         fits_header=newhdr, overwrite=True)

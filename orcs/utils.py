@@ -64,12 +64,12 @@ def fit_lines_in_spectrum(params, inputparams, fit_tol, spectrum,
       changed in the InputParams instance.
     """
     import orb.utils.spectrum
-        
+
     kwargs_orig = dict(kwargs)
     if debug:
         import orb.utils.log
         orb.utils.log.setup_socket_logging()
-            
+
     # check snr guess param
     auto_mode = False
     bad_snr_param = False
@@ -100,20 +100,20 @@ def fit_lines_in_spectrum(params, inputparams, fit_tol, spectrum,
     if 'fwhm_guess' in kwargs:
         raise ValueError('fwhm_guess must not be in kwargs. It must be set via theta_orig.')
 
-    
+
     fwhm_guess_cm1 = orb.utils.spectrum.compute_line_fwhm(
         params['step_nb'] - params['zpd_index'],
         params['step'], params['order'],
         orb.utils.spectrum.theta2corr(theta_orig),
         wavenumber=params['wavenumber'])
 
-    
+
     kwargs['fwhm_guess'] = [fwhm_guess_cm1] * inputparams['allparams']['line_nb']
 
-    
+
     logging.debug('recomputed fwhm guess: {}'.format(kwargs['fwhm_guess']))
 
-    
+
     if bad_snr_param:
         raise ValueError("snr_guess parameter not understood. It can be set to a float, 'auto' or None.")
 
